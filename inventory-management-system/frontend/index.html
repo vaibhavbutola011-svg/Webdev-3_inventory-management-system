@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockPilot · Inventory Management</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark">S</span>
+        <span class="brand-name">StockPilot</span>
+      </div>
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-view="dashboard"><span class="ico">▦</span> Dashboard</a>
+        <a href="#" class="nav-item" data-view="products"><span class="ico">☰</span> All Products</a>
+        <a href="#" class="nav-item" data-view="add"><span class="ico">＋</span> Add Product</a>
+        <a href="#" class="nav-item" data-view="lowstock"><span class="ico">⚠</span> Low Stock <span class="nav-badge" id="navLowBadge" hidden>0</span></a>
+        <a href="#" class="nav-item" data-view="reports"><span class="ico">▤</span> Inventory Reports</a>
+      </nav>
+      <div class="sidebar-foot">Inventory &amp; Data Management<br />Web Dev III · Assignment 3</div>
+    </aside>
+
+    <div class="main">
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div class="topbar-right">
+          <div class="search-box">
+            <span class="search-ico">⌕</span>
+            <input type="search" id="globalSearch" placeholder="Search by name or SKU…" autocomplete="off" />
+          </div>
+          <button class="btn btn-outline" id="refreshBtn" title="Refresh data"><span id="refreshIco">⟳</span> Refresh</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- DASHBOARD -->
+        <section class="view active" id="view-dashboard">
+          <div class="stats">
+            <div class="card stat">
+              <div class="stat-icon blue">▣</div>
+              <div><div class="stat-label">Total Products</div><div class="stat-value" id="statProducts">–</div></div>
+            </div>
+            <div class="card stat">
+              <div class="stat-icon teal">⬡</div>
+              <div><div class="stat-label">Total Stock Quantity</div><div class="stat-value" id="statQty">–</div></div>
+            </div>
+            <div class="card stat">
+              <div class="stat-icon indigo">₹</div>
+              <div><div class="stat-label">Total Inventory Value</div><div class="stat-value" id="statValue">–</div></div>
+            </div>
+            <div class="card stat clickable" id="statLowCard">
+              <div class="stat-icon red">⚠</div>
+              <div><div class="stat-label">Low Stock Products</div><div class="stat-value" id="statLow">–</div></div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><h2>Stock Value by Category</h2></div>
+              <div id="dashChart" class="bars"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>Needs Restocking</h2>
+                <a href="#" class="link" data-view="lowstock">View all</a>
+              </div>
+              <div id="dashLow" class="mini-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ALL PRODUCTS -->
+        <section class="view" id="view-products">
+          <div class="card">
+            <div class="toolbar">
+              <div class="field-inline">
+                <label for="filterCategory">Category</label>
+                <select id="filterCategory"><option value="">All categories</option></select>
+              </div>
+              <div class="field-inline">
+                <label for="filterMin">Min ₹</label>
+                <input type="number" id="filterMin" min="0" placeholder="0" />
+              </div>
+              <div class="field-inline">
+                <label for="filterMax">Max ₹</label>
+                <input type="number" id="filterMax" min="0" placeholder="Any" />
+              </div>
+              <div class="field-inline">
+                <label for="sortBy">Sort by</label>
+                <select id="sortBy">
+                  <option value="createdAt">Newest</option>
+                  <option value="name">Name</option>
+                  <option value="price">Price</option>
+                  <option value="quantity">Quantity</option>
+                </select>
+              </div>
+              <div class="field-inline">
+                <label for="sortOrder">Order</label>
+                <select id="sortOrder">
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              </div>
+              <div class="field-inline">
+                <label for="pageLimit">Per page</label>
+                <select id="pageLimit">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <button class="btn btn-ghost" id="clearFilters">Clear</button>
+              <button class="btn btn-primary push-right" data-view="add">＋ Add Product</button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th><th>SKU</th><th>Category</th><th class="num">Price</th>
+                    <th class="num">Quantity</th><th class="num">Reorder Level</th><th>Supplier</th>
+                    <th>Stock Status</th><th class="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="productsBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+          </div>
+        </section>
+
+        <!-- ADD PRODUCT -->
+        <section class="view" id="view-add">
+          <div class="card form-card">
+            <div class="card-head"><h2>Add New Product</h2></div>
+            <form id="addForm" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="addName">Product Name *</label>
+                  <input id="addName" name="name" type="text" placeholder="e.g. Wireless Mouse" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addSku">SKU *</label>
+                  <input id="addSku" name="sku" type="text" placeholder="e.g. ELEC-MS-101" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addCategory">Category *</label>
+                  <input id="addCategory" name="category" type="text" list="categoryList" placeholder="e.g. Electronics" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addSupplier">Supplier *</label>
+                  <input id="addSupplier" name="supplier" type="text" placeholder="e.g. Logitech" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addPrice">Price (₹) *</label>
+                  <input id="addPrice" name="price" type="number" min="0" step="0.01" placeholder="0.00" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addQuantity">Quantity *</label>
+                  <input id="addQuantity" name="quantity" type="number" min="0" step="1" placeholder="0" />
+                  <small class="err"></small>
+                </div>
+                <div class="form-group">
+                  <label for="addReorder">Reorder Level *</label>
+                  <input id="addReorder" name="reorderLevel" type="number" min="0" step="1" placeholder="0" />
+                  <small class="err"></small>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="addSubmit">Save Product</button>
+                <button type="reset" class="btn btn-ghost">Reset</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- LOW STOCK -->
+        <section class="view" id="view-lowstock">
+          <div class="alert alert-warn" id="lowAlert" hidden></div>
+          <div class="card">
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Product Name</th><th>SKU</th><th>Category</th><th class="num">Quantity</th>
+                    <th class="num">Reorder Level</th><th class="num">Shortfall</th><th>Supplier</th><th class="actions-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="lowBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- REPORTS -->
+        <section class="view" id="view-reports">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><h2>Stock Value by Category</h2></div>
+              <div id="chartValue" class="bars"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h2>Quantity by Category</h2></div>
+              <div id="chartQty" class="bars"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Category-wise Inventory Summary</h2></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Category</th><th class="num">Number of Products</th><th class="num">Total Quantity</th>
+                    <th class="num">Total Stock Value</th><th class="num">Average Price</th>
+                  </tr>
+                </thead>
+                <tbody id="reportBody"></tbody>
+                <tfoot id="reportFoot"></tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <datalist id="categoryList"></datalist>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-backdrop" id="editModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-head"><h2 id="editTitle">Edit Product</h2><button class="x" data-close>&times;</button></div>
+      <form id="editForm" novalidate>
+        <input type="hidden" id="editId" />
+        <div class="form-grid">
+          <div class="form-group"><label for="editName">Product Name *</label><input id="editName" name="name" type="text" /><small class="err"></small></div>
+          <div class="form-group"><label for="editSku">SKU *</label><input id="editSku" name="sku" type="text" /><small class="err"></small></div>
+          <div class="form-group"><label for="editCategory">Category *</label><input id="editCategory" name="category" type="text" list="categoryList" /><small class="err"></small></div>
+          <div class="form-group"><label for="editSupplier">Supplier *</label><input id="editSupplier" name="supplier" type="text" /><small class="err"></small></div>
+          <div class="form-group"><label for="editPrice">Price (₹) *</label><input id="editPrice" name="price" type="number" min="0" step="0.01" /><small class="err"></small></div>
+          <div class="form-group"><label for="editQuantity">Quantity *</label><input id="editQuantity" name="quantity" type="number" min="0" step="1" /><small class="err"></small></div>
+          <div class="form-group"><label for="editReorder">Reorder Level *</label><input id="editReorder" name="reorderLevel" type="number" min="0" step="1" /><small class="err"></small></div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="editSubmit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- STOCK MODAL -->
+  <div class="modal-backdrop" id="stockModal" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="stockTitle">
+      <div class="modal-head"><h2 id="stockTitle">Adjust Stock</h2><button class="x" data-close>&times;</button></div>
+      <div class="stock-info">
+        <div class="stock-name" id="stockName"></div>
+        <div class="stock-current">Current stock: <strong id="stockCurrent">0</strong> · Reorder at <strong id="stockReorder">0</strong></div>
+      </div>
+      <div class="stepper">
+        <button type="button" class="btn btn-outline" id="stockMinus" aria-label="Decrease">−</button>
+        <input type="number" id="stockChange" value="1" step="1" aria-label="Change amount" />
+        <button type="button" class="btn btn-outline" id="stockPlus" aria-label="Increase">＋</button>
+      </div>
+      <p class="hint">Positive adds stock (restock). Negative removes stock (sale). Stock can't go below zero.</p>
+      <div class="quick">
+        <button type="button" class="chip" data-q="-10">−10</button>
+        <button type="button" class="chip" data-q="-5">−5</button>
+        <button type="button" class="chip" data-q="-1">−1</button>
+        <button type="button" class="chip" data-q="1">+1</button>
+        <button type="button" class="chip" data-q="5">+5</button>
+        <button type="button" class="chip" data-q="10">+10</button>
+        <button type="button" class="chip" data-q="50">+50</button>
+      </div>
+      <div class="stock-preview" id="stockPreview"></div>
+      <small class="err" id="stockErr"></small>
+      <div class="modal-foot">
+        <input type="hidden" id="stockId" />
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="button" class="btn btn-primary" id="stockApply">Apply Adjustment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE MODAL -->
+  <div class="modal-backdrop" id="deleteModal" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="delTitle">
+      <div class="modal-head"><h2 id="delTitle">Delete Product</h2><button class="x" data-close>&times;</button></div>
+      <p class="del-text">Are you sure you want to delete <strong id="delName"></strong>? This action cannot be undone.</p>
+      <div class="modal-foot">
+        <input type="hidden" id="delId" />
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="button" class="btn btn-danger" id="delConfirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
